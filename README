@@ -1,7 +1,7 @@
 Introduction
 ============
 This is yet another pure-python implementation of the MySQL protocol. Other
-examples include:
+interesting (and more mature) implementations include:
 
 .. _pymysql: http://code.google.com/p/pymysql
 .. _myconnpy: https://launchpad.net/myconnpy
@@ -26,6 +26,7 @@ TODO:
 - Prepared statement protocol
 - Improved character set support
 - Integrate binlog protocol parsing
+- Context managers for connection/cursor objects
 
 Future plans:
 - Optional C speedups to address network and protocol decoding bottlenecks
