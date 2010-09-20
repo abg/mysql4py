@@ -1,0 +1,16 @@
+README
+setup.cfg
+setup.py
+mysql4py/__init__.py
+mysql4py/channel.py
+mysql4py/constants.py
+mysql4py/conversions.py
+mysql4py/dbapi.py
+mysql4py/errors.py
+mysql4py/packet.py
+mysql4py/protocol.py
+mysql4py/util.py
+mysql4py.egg-info/PKG-INFO
+mysql4py.egg-info/SOURCES.txt
+mysql4py.egg-info/dependency_links.txt
+mysql4py.egg-info/top_level.txt
