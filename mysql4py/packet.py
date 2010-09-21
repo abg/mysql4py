@@ -67,7 +67,7 @@ class BasePacketStream(object):
             if not chunk:
                 # MySQL server has gone away
                 raise_mysql_error(errno=2006)
-            result.fromstring(chunk)
+            result.extend(chunk)
             n_bytes -= len(chunk)
         return result
 
