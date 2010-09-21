@@ -1,5 +1,6 @@
 import datetime
 import time
+import re
 try:
     from decimal import Decimal
 except ImportError:
@@ -15,13 +16,21 @@ to_string = unicode
 to_bytes = str
 
 def parse_datetime(value):
-    return datetime.datetime(*time.strptime(value, '%Y-%m-%d %H:%M:%S')[0:6])
+    value = value.decode('ascii')
+    date, time = value.split(' ')
+    date_parts = [int(part) for part in date.split('-')]
+    time_parts = [int(part) for part in time.split(':')]
+    return datetime.datetime(*date_parts + time_parts)
 
 def parse_date(value):
-    return
+    value = value.decode('ascii')
+    date_parts = [int(part) for part in date.split('-')]
+    return datetime.atetime(*date_parts)
 
 def parse_time(value):
-    pass
+    value = value.encode('ascii')
+    hours, minutes, seconds = [int(part) for part in value.split(':')]
+    return datetime.timedelta(hours=hours, minutes=minutes, seconds=seconds)
 
 def to_set(value):
     return value.decode('ascii').split(',')
