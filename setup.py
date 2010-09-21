@@ -1,9 +1,13 @@
+import sys
 try:
-        from setuptools import setup
+    from distutils.command.build_py import build_py_2to3 as build_py
 except ImportError:
-        from distutils.core import setup
+    from distutils.command.build_py import build_py
+from distutils.core import setup
 
 version = '1.0'
+
+
 
 setup(name='mysql4py',
       version=version,
@@ -33,4 +37,5 @@ setup(name='mysql4py',
       url='http://github.com/abg/mysql4py',
       license='BSD',
       packages=['mysql4py'],
+      cmdclass={'build_py' : build_py }
 )
