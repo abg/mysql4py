@@ -208,17 +208,14 @@ class Protocol(object):
         # OK packet -> INSERT/UPDATE/etc. only rows affected/insert_id
         # returned
         if response.is_ok_packet():
-            response.skip(1)
-            affected_rows = response.read_lcb()
-            response.read_lcb() # insert_id
-            status = response.read_int16()
-
-            if status & constants.SERVER_MORE_RESULTS_EXISTS:
+            result = SimpleResult(response)
+            if result.more_results():
                 self.state = STATE_RESULT
             else:
                 self.state = STATE_READY
 
-            return False, affected_rows
+            return result
+        # LOAD DATA LOCAL INFILE response
         elif response.data[0] == 0xfb:
             # packet[0] = \xfb
             # packet[1:] = file we should load
@@ -246,34 +243,61 @@ class Protocol(object):
                 fileobj.close()
 
             pkt = self.packet.next_packet()
-            pkt.skip(1)
-            if pkt.is_ok_packet():
-                return False, pkt.read_lcb()
+            response = SimpleResult(pkt)
+            if response.more_results():
+                self.state = STATE_RESULT
             else:
-                raise ValueError("Unknown packet response: %r" % pkt.data)
+                self.state = STATE_READY
+            return response
         else:
-            # packet of pain!!
-            self.state = STATE_FIELDS
-            self.field_count = response.read_lcb()
-            return True, self.field_count
+            result = ResultSet(response, self)
+            self.state = STATE_DATA
+            return result
 
+class SimpleResult(object):
+    def __init__(self, response):
+        self.info = OK.decode(response)
+
+    # some useful properties
+    #@property
+    def affected_rows(self):
+        return self.info.affected_rows
+    affected_rows = property(affected_rows)
+
+    #@property
+    def insert_id(self):
+        return self.info.insert_id
+    insert_id = property(insert_id)
+
+    def more_results(self):
+        return self.info.status & SERVER_MORE_RESULTS_EXISTS
+
+    def __nonzero__(self):
+        # False = not a resultset
+        return False
+
+class ResultSet(object):
+    def __init__(self, response, protocol):
+        self.field_count = response.read_lcb()
+        self.protocol = protocol
+        self.fields = self.__fields()
     #@protected_state(STATE_FIELDS)
-    def fields(self):
+    def __fields(self):
         """Find the fields for the current resultset
 
         Returns list of `Field` instances
         """
         fields = []
 
-        pkt = self.packet.next_packet()
+        pkt = self.protocol.packet.next_packet()
         while not pkt.is_eof_packet():
             fields.append(Field.decode(pkt))
-            pkt = self.packet.next_packet()
-        self.state = STATE_DATA
+            pkt = self.protocol.packet.next_packet()
+        self.protocol.state = STATE_DATA
         return fields
 
     #@protected_state(STATE_DATA)
-    def rows(self):
+    def __iter__(self):
         """Iterate over the rows returned by the current resultset
 
         This is a pure iterator.  Rows are not cached in anyway and once
@@ -281,20 +305,25 @@ class Protocol(object):
         rows if requested.
         """
         n_fields = self.field_count
-        next_packet = self.packet.next_packet
+        next_packet = self.protocol.packet.next_packet
         pkt = next_packet()
         #for pkt in self.packet:
         while not pkt.data[0] == 0xfe:
             if pkt.data[0] == 0xfe:
                 break
-            yield pkt.read_n_lcs(n_fields)
+            yield tuple(pkt.read_n_lcs(n_fields))
             pkt = next_packet()
         info = EOF.decode(pkt)
         if info.status & constants.SERVER_MORE_RESULTS_EXISTS:
-            self.state = STATE_RESULT
+            self.protocol.state = STATE_RESULT
         else:
-            self.state = STATE_READY
+            self.protocol.state = STATE_READY
 
+        self.protocol = None
+
+    def __nonzero__(self):
+        # True = is a resultset and can be iterated over
+        return True
 
 class Handshake(object):
     """Initial server handshake"""
@@ -373,6 +402,36 @@ class ClientAuthentication(object):
         packed_data.fromstring(self.schema or '')
         packed_data.append(0x00) # null terminated schema
         return packed_data
+
+class OK(object):
+    def __init__(self,
+                 affected_rows,
+                 insert_id,
+                 server_status,
+                 warning_count,
+                 message):
+        self.affected_rows = affected_rows
+        self.insert_id = insert_id
+        self.server_status = server_status
+        self.warning_count = warning_count
+        self.message = message
+
+    #@staticmethod
+    def decode(pkt):
+        pkt.skip(1) # skip field_count, always 0x00
+        affected_rows = pkt.read_lcb()
+        insert_id = pkt.read_lcb()
+        server_status = pkt.read_int16()
+        warning_count = pkt.read_int16()
+        message = pkt.readall()
+
+        return OK(affected_rows,
+                  insert_id,
+                  server_status,
+                  warning_count,
+                  message)
+    decode = staticmethod(decode)
+
 
 class EOF(object):
     """End-of-Field/End-of-Data protocol message"""
