@@ -115,13 +115,15 @@ class Cursor(object):
         will be raised if any operation is attempted with the cursor
         """
         sql = operation
-        has_resultset, count = self.protocol.query(sql)
-        if has_resultset:
-            self.description = self.__fields_to_description(self.protocol.fields())
-            self.iter = self.protocol.rows()
+        result = self.protocol.query(sql)
+        if result:
+            self.description = self.__fields_to_description(result.fields)
+            self.iter = iter(result)
         else:
             self.description = None
-            self.rowcount = count
+            self.rowcount = result.affected_rows
+            self.lastrowid = result.insert_id or None
+
         return self
 
 
