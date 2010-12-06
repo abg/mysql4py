@@ -14,6 +14,8 @@ class ByteStream(object):
     def read(self, n_bytes=None):
         """Read the requested number of bytes from this packet chain"""
         index = self.index
+        if n_bytes is None:
+            return self.data[index:]
         result = self.data[index:index + n_bytes]
         result[n_bytes-1]
         self.index += n_bytes
