@@ -4,9 +4,12 @@ import codecs
 from channel import connect_unix, connect_tcp
 from protocol import Protocol
 from conversions import TYPE_MAP
+from paramstyle import paramstyles as _paramstyles
 from parser import OptionFile
 
 DEFAULT_OPTION_PATHS = ['/etc/mysql/my.cnf', '/etc/my.cnf', '~/.my.cnf']
+
+paramstyle = 'format'
 
 class Connection(object):
     def __init__(self,
@@ -126,13 +129,14 @@ class Cursor(object):
         """Close this cursor"""
         self.protocol = None
 
-    def execute(self, operation, params=None):
+    def execute(self, operation, params=()):
         """Close the cursor immediately.
 
         The cursor will be unusable from this point forward; an InterfaceError
         will be raised if any operation is attempted with the cursor
         """
-        sql = operation
+
+        sql = _paramstyles[paramstyle].format(operation, *params)
         result = self.protocol.query(sql)
         if result:
             self.description = self.__fields_to_description(result.fields)
