@@ -1,4 +1,4 @@
-# dbapi.py
+"""DBAPI 2.0 interface"""
 import codecs
 
 from channel import connect_unix, connect_tcp
@@ -9,6 +9,8 @@ from parser import OptionFile
 
 DEFAULT_OPTION_PATHS = ['/etc/mysql/my.cnf', '/etc/my.cnf', '~/.my.cnf']
 
+apilevel = '2.0'
+threadsafety = 1
 paramstyle = 'format'
 
 class Connection(object):

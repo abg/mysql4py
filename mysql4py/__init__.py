@@ -1,1 +1,1 @@
-from dbapi import Connection as connect
+from dbapi import Connection as connect, paramstyle, apilevel, threadsafety
