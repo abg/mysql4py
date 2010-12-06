@@ -153,7 +153,8 @@ class Cursor(object):
         """Prepare a database operation and then execute it against all
         parameter sequences or mappings found in the sequence seq_of_params
         """
-        raise NotImplementedError()
+        for params in seq_of_params:
+            self.execute(operation, params)
 
     def __fields_to_description(self, fields):
         """Convert a list of protcol.Field instances into dbapiv2 compliant
