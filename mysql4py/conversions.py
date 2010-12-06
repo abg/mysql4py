@@ -24,8 +24,8 @@ def parse_datetime(value):
 
 def parse_date(value):
     value = value.decode('ascii')
-    date_parts = [int(part) for part in date.split('-')]
-    return datetime.atetime(*date_parts)
+    date_parts = [int(part) for part in value.split('-')]
+    return datetime.datetime(*date_parts)
 
 def parse_time(value):
     value = value.encode('ascii')
