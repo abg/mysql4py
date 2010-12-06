@@ -270,7 +270,7 @@ class SimpleResult(object):
     insert_id = property(insert_id)
 
     def more_results(self):
-        return self.info.status & SERVER_MORE_RESULTS_EXISTS
+        return self.info.server_status & constants.SERVER_MORE_RESULTS_EXISTS
 
     def __nonzero__(self):
         # False = not a resultset
@@ -423,7 +423,7 @@ class OK(object):
         insert_id = pkt.read_lcb()
         server_status = pkt.read_int16()
         warning_count = pkt.read_int16()
-        message = pkt.readall()
+        message = pkt.read()
 
         return OK(affected_rows,
                   insert_id,
