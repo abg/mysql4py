@@ -126,16 +126,17 @@ class Cursor(object):
         return None
 
     def close(self):
-        """Close this cursor"""
-        self.protocol = None
-
-    def execute(self, operation, params=()):
         """Close the cursor immediately.
 
         The cursor will be unusable from this point forward; an InterfaceError
         will be raised if any operation is attempted with the cursor
         """
+        self.protocol = None
 
+    def execute(self, operation, params=()):
+        """Prepare and execute a database operation (query or
+        command).
+        """
         sql = _paramstyles[paramstyle].format(operation, *params)
         result = self.protocol.query(sql)
         if result:
@@ -147,7 +148,6 @@ class Cursor(object):
             self.lastrowid = result.insert_id or None
 
         return self
-
 
     def executemany(operation, seq_of_params):
         """Prepare a database operation and then execute it against all
