@@ -4,7 +4,9 @@ import codecs
 from channel import connect_unix, connect_tcp
 from protocol import Protocol
 from conversions import TYPE_MAP
-import constants
+from parser import OptionFile
+
+DEFAULT_OPTION_PATHS = ['/etc/mysql/my.cnf', '/etc/my.cnf', '~/.my.cnf']
 
 class Connection(object):
     def __init__(self,
@@ -13,7 +15,9 @@ class Connection(object):
                  host='localhost', port=3306,
                  unix_socket=None,
                  ssl=False,
-                 compress=False):
+                 compress=False,
+                 read_default_group=None,
+                 read_default_file=None):
 
         if unix_socket:
             channel = connect_unix(unix_socket)
@@ -26,9 +30,23 @@ class Connection(object):
         if compress:
             self.protocol.enable_compression()
 
+        if read_default_file or read_default_group:
+            if not read_default_group:
+                read_default_group = 'client'
+            if not read_default_file:
+                read_default_file = DEFAULT_OPTION_PATHS
+            else:
+                read_default_file = [read_default_file]
+            options = OptionFile()
+            options.read(read_default_file)
+            auth_params = options.get(read_default_group, {})
+            user = auth_params.get('user')
+            passwd = auth_params.get('password')
+            db = auth_params.get('db')
+
         self.protocol.authenticate(user, passwd, db)
-        # toggle autocommit to off initially
-        #self.autocommit()
+        # toggle autocommit to off initially per dbapi spec
+        self.autocommit()
 
     def autocommit(self):
         """Toggle auto-commit"""
