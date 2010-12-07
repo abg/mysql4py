@@ -5,7 +5,6 @@ try:
     from hashlib import sha1
 except ImportError:
     from sha import new as sha1
-from array import array
 
 import packet
 import constants
@@ -168,7 +167,7 @@ class Protocol(object):
         self.packet.next_packet()
 
     def close(self):
-        message = array('B', [constants.COM_QUIT])
+        message = struct.pack('B', constants.COM_QUIT)
         self.packet.send_packet(message, seqno=0)
         self.channel.close()
 
@@ -188,9 +187,7 @@ class Protocol(object):
         """
         # just send the query and set our state to 'needs the results
         # processed'. Errors are delayed until nextset() is run
-        message = array('B')
-        message.append(constants.COM_QUERY)
-        message.fromstring(sql.encode('utf8'))
+        message = struct.pack('B', constants.COM_QUERY) + sql.encode('utf8')
         self.packet.send_packet(message, seqno=0)
         self.state = STATE_RESULT
         return self.nextset()
@@ -222,22 +219,21 @@ class Protocol(object):
             # send multiple packets of file data
             response.skip(1) # skip the known 0xfb byte
             try:
-                fileobj = open(response.read_all().tostring())
+                fileobj = open(response.read_all().tostring(), 'rb')
             except IOError, exc:
-                self.packet.send_packet(array('B'), 2)
+                # Sending an empty packet
+                self.packet.send_packet(''.encode('utf8'), seqno=2)
                 self.state = STATE_READY
                 raise
 
             try:
-                data = array('B')
-                data.fromstring(fileobj.read(65535))
+                data = fileobj.read(65535)
                 pktnr = 2
                 while data:
                     self.packet.send_packet(data, pktnr)
-                    data = array('B')
-                    data.fromstring(fileobj.read(65535))
+                    data = fileobj.read(65535)
                     pktnr += 1
-                self.packet.send_packet(array('B'), pktnr)
+                self.packet.send_packet(''.encode('utf8'), pktnr)
                 self.state = STATE_READY
             finally:
                 fileobj.close()
@@ -391,16 +387,17 @@ class ClientAuthentication(object):
         """Serialize this authentication request into the packed
         wire format required by the MySQL protocol
         """
-        packed_data = array('B', struct.pack('<IIB23x',
-                                             self.client_flags,
-                                             self.max_packet_size,
-                                             self.charset))
-        packed_data.fromstring(self.user or '')
-        packed_data.append(0x00) # null terminated user name
-        packed_data.append(len(self.token or ''))
-        packed_data.fromstring(self.token or '') # LCB password
-        packed_data.fromstring(self.schema or '')
-        packed_data.append(0x00) # null terminated schema
+        NUL = '\x00'.encode('utf8')
+        packed_data = struct.pack('<IIB23x',
+                                  self.client_flags,
+                                  self.max_packet_size,
+                                  self.charset)
+        packed_data += (self.user or '').encode('utf8')
+        packed_data += NUL # null terminated user name
+        packed_data += chr(len(self.token or '')).encode('utf8')
+        packed_data += (self.token or '').encode('utf8') # LCB password
+        packed_data += (self.schema or '').encode('utf8')
+        packed_data += NUL # null terminated schema
         return packed_data
 
 class OK(object):
@@ -518,7 +515,7 @@ def scramble(password, message):
     For servers using old_passwords, use scramble323
     """
     if not password:
-        return ''
+        return ''.encode('utf8')
 
     stage1 = sha1(password).digest()
     stage2 = sha1(stage1).digest()
@@ -567,9 +564,9 @@ def scramble_323(password, message):
             yield float(seed1) / float(max_value)
 
     if not password:
-        return ''
-    token = array('B')
-    token.fromstring(password)
+        return ''.encode('utf8')
+
+    token = password.encode('utf8')
 
     hash_pass = hash_password(token)
     hash_mesg = hash_password(message)
@@ -578,6 +575,6 @@ def scramble_323(password, message):
     result = [int(next_rand()*31) + 64 for i in xrange(8)]
     extra = int(next_rand()*31)
     result = [i ^ extra for i in result]
-    result.append(0)
+    #result += '\x00'.encode('utf8')
 
-    return array('B', result)
+    return struct.pack('8B', result)
