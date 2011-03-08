@@ -103,7 +103,7 @@ class RawPacketStream(BasePacketStream):
 
     def send_packet(self, data, seqno=0):
         size = len(data)
-        self.write(struct.pack('<I', size | (seqno << 24)) + data.tostring())
+        self.write(struct.pack('<I', size | (seqno << 24)) + data)
 
 
 
