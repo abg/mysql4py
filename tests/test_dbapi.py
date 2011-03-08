@@ -1,4 +1,4 @@
-from dbapi import Connection
+from mysql4py.dbapi import Connection
 
 c = Connection(user='root')
 z = c.cursor()

@@ -1,18 +1,16 @@
-from channel import connect_unix
-from protocol import Protocol
+from mysql4py.channel import connect_unix
+from mysql4py.protocol import Protocol
 
 endpoint = connect_unix('/var/lib/mysql/mysql.sock')
 proto = Protocol(endpoint)
 #proto.enable_ssl()
 proto.enable_compression()
 proto.authenticate(user='root')
-proto.query('SHOW GRANTS')
-proto.fields()
-for row in proto.rows():
+result = proto.query('SHOW GRANTS')
+for row in result:
     print row
-print (proto.query("SHOW SESSION STATUS LIKE '%SSL%'"))
-print (proto.fields())
-for row in proto.rows():
+result = proto.query("SHOW SESSION STATUS LIKE '%SSL%'")
+for row in result:
     print (row)
 
 import time
