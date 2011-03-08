@@ -139,7 +139,7 @@ class Cursor(object):
         """Prepare and execute a database operation (query or
         command).
         """
-        sql = _paramstyles[paramstyle].format(operation, *params)
+        sql = _paramstyles[paramstyle].format(operation, *params or ())
         result = self.protocol.query(sql)
         if result:
             self.description = self.__fields_to_description(result.fields)
@@ -166,7 +166,7 @@ class Cursor(object):
             if field.type_code in TYPE_MAP:
                 field.convert = TYPE_MAP[field.type_code]
             else:
-                field.convert = lambda value: codecs.utf_8_decode(value)[0]
+                field.convert = lambda value: value.decode('utf8')
         self.__fields = fields
         return [(field.column, None, None, None, None, None, None)
                     for field in fields]
@@ -213,11 +213,10 @@ class Cursor(object):
 
         If there are no more sets, the method returns None
         """
-        has_resultset, count = self.protocol.nextset()
-        if has_resultset:
-            self.description = self.__fields_to_description(self.protocol.fields())
-
-            self.iter = self.protocol.rows()
+        result = self.protocol.nextset()
+        if result:
+            self.description = self.__fields_to_description(result.fields)
+            self.iter = iter(result)
         else:
             self.description = None
             self.rowcount = count
