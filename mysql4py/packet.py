@@ -1,15 +1,14 @@
 import socket
 import struct
 import zlib
-import codecs
 from array import array
 
-from util import ByteStream
-from errors import raise_mysql_error
+from mysql4py.util import ByteStream
+from mysql4py.errors import raise_mysql_error
 
 def pkt2mysqlerror(data):
     errno, sqlstate = struct.unpack('<xH6s', data[0:9])
-    msg = codecs.utf_8_decode(data[9:])
+    msg = data[9:].decode('utf8')
     raise_mysql_error(errno, msg)
 
 class Packet(ByteStream):
@@ -53,7 +52,7 @@ class CompressedPacket(Packet):
             raise IndexError(self.data[self.index:])
         self.index += size
         if data[0] == 0xff:
-            pkt2mysqlerror(data)
+            pkt2mysqlerror(data.tostring())
         return Packet(size, seqno, data)
 
 class BasePacketStream(object):
@@ -146,12 +145,11 @@ class CompressedPacketStream(BasePacketStream):
         return pkt
 
     def send_packet(self, data, seqno=0):
-        base_payload = data.tostring()
         # 4 byte packet header + size of payload (excluding 7-byte compression
         # header)
-        total_size = 4 + len(base_payload)
+        total_size = 4 + len(data)
         size = len(data)
         payload = struct.pack('<I3xI',
                               total_size | (seqno << 24), # compression header
-                              size | (seqno << 24)) + data.tostring()
+                              size | (seqno << 24)) + data
         self.write(payload)
