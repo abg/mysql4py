@@ -182,6 +182,8 @@ class Protocol(object):
         """Send a simple query to the server"""
         # just send the query and set our state to 'needs the results
         # processed'. Errors are delayed until nextset() is run
+        assert self.state == STATE_READY, \
+            "Query in state %d but expected STATE_READY"
         message = pack('B', constants.COM_QUERY) + sql.encode(self.charset)
         self.packet.send_packet(message, seqno=0)
         self.state = STATE_RESULT
