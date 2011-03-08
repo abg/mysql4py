@@ -114,7 +114,7 @@ class ByteStream(object):
         if size:
             return self.read(size).tostring()
 
-    # we try to be atomic here, largel for the compressed protocol
+    # we try to be atomic here, largely for the compressed protocol
     # XXX: pretty this up
     def read_n_lcs(self, n_fields):
         data = self.data
@@ -125,8 +125,10 @@ class ByteStream(object):
         while n_fields:
             first = data[index]
             if first == 251: # NULL
-                self.index += 1
-                return None
+                index += 1
+                n_fields -= 1
+                append(None)
+                continue
 
             if first < 251:
                 index += 1
