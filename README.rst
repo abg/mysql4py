@@ -4,7 +4,7 @@ This is yet another pure-python implementation of the MySQL protocol. Other
 interesting (and more mature) implementations include:
 
 * pymysql_
-* mysqconnpy_
+* myconnpy_
 
 .. _pymysql: http://code.google.com/p/pymysql
 .. _myconnpy: https://launchpad.net/myconnpy
@@ -25,7 +25,7 @@ Current features supported are:
 TODO:
 
 * PEP249 support is incomplete
- charset handling is incomplete
+* charset handling is incomplete
 * SSL auth needs to support x509 and should verify certs
 * BLOB support (only supported for raw protocol, not compressed)
 * Prepared statement protocol
