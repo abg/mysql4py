@@ -1,6 +1,6 @@
 """dbapi 2.0 paramstyle implementations"""
 
-import re
+from mysql4py.pycompat import Scanner
 
 class ParamFormatError(Exception):
     """Raised when there is a problem formatting a query according to a given
@@ -27,7 +27,7 @@ class AbstractParamStyle(object):
         raise NotImplementedError()
 
 class QmarkParamStyle(AbstractParamStyle):
-    scanner = re.Scanner([
+    scanner = Scanner([
         (r"'((?:[^\\']|\\[^']|''|\\')*)'", None),
         (r'"((?:[^\\"]|\\[^"]|""|\\")*)"', None),
         (r'`((?:[^\\`]|\\[^`]|``|\\`)*)`', None),
@@ -58,7 +58,7 @@ class QmarkParamStyle(AbstractParamStyle):
             return ''.join(fragments)
 
 class NamedParamStyle(AbstractParamStyle):
-    scanner = re.Scanner([
+    scanner = Scanner([
         (r"'(?:[^']|(?:\\[^'])|(?:'')|(?:\\'))*'", None),
         (r'"((?:[^\\"]|\\[^"]|""|\\")*)"', None),
         (r'`((?:[^\\`]|\\[^`]|``|\\`)*)`', None),
@@ -93,7 +93,7 @@ class NamedParamStyle(AbstractParamStyle):
 
 
 class NumericParamStyle(AbstractParamStyle):
-    scanner = re.Scanner([
+    scanner = Scanner([
         (r"'(?:[^']|(?:\\[^'])|(?:'')|(?:\\'))*'", None),
         (r'"((?:[^\\"]|\\[^"]|""|\\")*)"', None),
         (r'`((?:[^\\`]|\\[^`]|``|\\`)*)`', None),
