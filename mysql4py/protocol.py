@@ -1,6 +1,6 @@
 """MySQL protocol support"""
 
-import struct
+from struct import pack
 try:
     from hashlib import sha1
 except ImportError:
@@ -40,13 +40,16 @@ def protected_state(state):
 class Protocol(object):
     """Base Protocol class"""
 
-    def __init__(self, channel):
+    def __init__(self, channel, charset='utf8'):
         self.channel = channel
         self.state = STATE_INIT
         self.info = None
         # set in the authetnicate reply to enable features
         self.flags = 0
         self.packet = packet.RawPacketStream(channel)
+        self.charset = charset
+        # active result, if any
+        self.result = None
 
     # These raise InterfaceError if called anytime after server handshake
     # (self.server_info is not None)
@@ -167,7 +170,7 @@ class Protocol(object):
         self.packet.next_packet()
 
     def close(self):
-        message = struct.pack('B', constants.COM_QUIT)
+        message = pack('B', constants.COM_QUIT)
         self.packet.send_packet(message, seqno=0)
         self.channel.close()
 
@@ -176,42 +179,30 @@ class Protocol(object):
     # state != OK
     #@protected_state(STATE_READY)
     def query(self, sql):
-        """Send a simple query to the server
-
-        Returns a tuple (bool, value).  The bool indicates whether the
-        query returns a resulset and, if so, the value will be a field
-        count.
-
-        If bool is false, the query only returns rows affected, contained
-        in the `value` returned.
-        """
+        """Send a simple query to the server"""
         # just send the query and set our state to 'needs the results
         # processed'. Errors are delayed until nextset() is run
-        message = struct.pack('B', constants.COM_QUERY) + sql.encode('utf8')
+        message = pack('B', constants.COM_QUERY) + sql.encode(self.charset)
         self.packet.send_packet(message, seqno=0)
         self.state = STATE_RESULT
-        return self.nextset()
 
     #@protected_state(STATE_RESULT)
     def nextset(self):
         """Process the next resulset
 
-        Returns tuple (has_resultset, value)
-
-        has_resultset : True if next result is a resulset, False otherwise
-        value : field_count for a resultset, affected_rowcount otherwise
+        Returns result
         """
         response = self.packet.next_packet()
         # OK packet -> INSERT/UPDATE/etc. only rows affected/insert_id
         # returned
         if response.is_ok_packet():
-            result = SimpleResult(response)
-            if result.more_results():
+            self.result = SimpleResult(response)
+            if self.result.more_results():
                 self.state = STATE_RESULT
             else:
                 self.state = STATE_READY
 
-            return result
+            return self.result
         # LOAD DATA LOCAL INFILE response
         elif response.data[0] == 0xfb:
             # packet[0] = \xfb
@@ -222,7 +213,7 @@ class Protocol(object):
                 fileobj = open(response.read_all().tostring(), 'rb')
             except IOError, exc:
                 # Sending an empty packet
-                self.packet.send_packet(''.encode('utf8'), seqno=2)
+                self.packet.send_packet(''.encode(self.charset), seqno=2)
                 self.state = STATE_READY
                 raise
 
@@ -233,7 +224,7 @@ class Protocol(object):
                     self.packet.send_packet(data, pktnr)
                     data = fileobj.read(65535)
                     pktnr += 1
-                self.packet.send_packet(''.encode('utf8'), pktnr)
+                self.packet.send_packet(''.encode(self.charset), pktnr)
                 self.state = STATE_READY
             finally:
                 fileobj.close()
@@ -246,9 +237,9 @@ class Protocol(object):
                 self.state = STATE_READY
             return response
         else:
-            result = ResultSet(response, self)
+            self.result = ResultSet(response, self)
             self.state = STATE_DATA
-            return result
+            return self.result
 
 class SimpleResult(object):
     def __init__(self, response):
@@ -389,7 +380,7 @@ class ClientAuthentication(object):
         wire format required by the MySQL protocol
         """
         NUL = '\x00'.encode('utf8')
-        packed_data = struct.pack('<IIB23x',
+        packed_data = pack('<IIB23x',
                                   self.client_flags,
                                   self.max_packet_size,
                                   self.charset)
@@ -519,6 +510,7 @@ def scramble(password, message):
     For servers using old_passwords, use scramble323
     """
     if not password:
+        # always return a bytestring
         return ''.encode('utf8')
 
     stage1 = sha1(password).digest()
@@ -526,8 +518,10 @@ def scramble(password, message):
     stage3 = sha1()
     stage3.update(message)
     stage3.update(stage2)
-    return ''.join([chr(ord(a) ^ ord(b))
-                    for a, b in zip(stage1, stage3.digest()) ])
+    stage1 = array.array('B', stage1)
+    stage3 = array.array('B', stage3.digest())
+    return array.array('B',
+                       [a ^ b for a, b in zip(stage1, stage3)]).tostring()
 
 def scramble_323(password, message):
     """Scramble a password in the old (insecure) format"""
@@ -581,4 +575,4 @@ def scramble_323(password, message):
     result = [i ^ extra for i in result]
     #result += '\x00'.encode('utf8')
 
-    return struct.pack('8B', result)
+    return pack('8B', result)
