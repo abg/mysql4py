@@ -91,7 +91,7 @@ class RawPacketStream(BasePacketStream):
         size, seqno = i & 0x00ffffff, i >> 24
         data = self.read(size)
         if data[0] == 0xff:
-            pkt2mysqlerror(data)
+            pkt2mysqlerror(data.tostring())
 
         while size == 0x00ffffff:
             i, = struct.unpack('<I', self.read(4))
