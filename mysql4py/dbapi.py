@@ -56,6 +56,7 @@ class Connection(object):
     def autocommit(self):
         """Toggle auto-commit"""
         self.protocol.query('SET autocommit=0')
+        self.protocol.nextset()
 
     def thread_id(self):
         """Fetch the current thread if of the underlying connection"""
@@ -140,15 +141,8 @@ class Cursor(object):
         command).
         """
         sql = _paramstyles[paramstyle].format(operation, *params or ())
-        result = self.protocol.query(sql)
-        if result:
-            self.description = self.__fields_to_description(result.fields)
-            self.iter = iter(result)
-        else:
-            self.description = None
-            self.rowcount = result.affected_rows
-            self.lastrowid = result.insert_id or None
-
+        self.protocol.query(sql)
+        self.nextset()
         return self
 
     def executemany(operation, seq_of_params):
@@ -158,7 +152,8 @@ class Cursor(object):
         for params in seq_of_params:
             self.execute(operation, params)
 
-    def __fields_to_description(self, fields):
+    #@staticmethod
+    def _fields_to_description(fields):
         """Convert a list of protcol.Field instances into dbapiv2 compliant
         description tuples
         """
@@ -167,9 +162,9 @@ class Cursor(object):
                 field.convert = TYPE_MAP[field.type_code]
             else:
                 field.convert = lambda value: value.decode('utf8')
-        self.__fields = fields
         return [(field.column, None, None, None, None, None, None)
                     for field in fields]
+    _fields_to_description = staticmethod(_fields_to_description)
 
     def fetchone(self):
         """Fetch the next row of the query result set"""
@@ -215,12 +210,12 @@ class Cursor(object):
         """
         result = self.protocol.nextset()
         if result:
-            self.description = self.__fields_to_description(result.fields)
-            self.iter = iter(result)
+            self.description = self._fields_to_description(result.fields)
+            self._result = result
         else:
             self.description = None
-            self.rowcount = count
-            self.__fields = None
+            self.rowcount = result.affected_rows
+            self._result = result
 
     def scroll(value, mode='relative'):
         """Scroll the cursor in the result set to a new position according to
@@ -241,7 +236,7 @@ class Cursor(object):
         """
 
     def __iter__(self):
-        for row in self.iter:
+        for row in self._result:
             yield tuple([field.convert(column)
-                         for column, field in zip(row, self.__fields)])
+                         for column, field in zip(row, self._result.fields)])
 
