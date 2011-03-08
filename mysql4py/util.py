@@ -78,7 +78,6 @@ class ByteStream(object):
             return first
 
         size = first - 250
-        print "size = %r" % size
         if size < 4:
             i_bytes = data[index+1:index+size+1]
             i_bytes[size-1] # length check
