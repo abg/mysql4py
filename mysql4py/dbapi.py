@@ -237,6 +237,6 @@ class Cursor(object):
 
     def __iter__(self):
         for row in self._result:
-            yield tuple([field.convert(column)
-                         for column, field in zip(row, self._result.fields)])
+            yield [column is not None and field.convert(column) or None
+                   for column, field in zip(row, self._result.fields)]
 
