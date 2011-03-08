@@ -71,8 +71,6 @@ class NamedParamStyle(AbstractParamStyle):
     def format(cls, query, **kwargs):
         matches, unparsed = cls.scanner.scan(query)
 
-        print "matches => %r unparsed => %r" % (matches, unparsed)
-
         if unparsed:
             raise ParamFormatError("Error parsing query at offset %d" %
                     len(query) - len(unparsed))
@@ -137,7 +135,7 @@ class FormatParamStyle(AbstractParamStyle):
             raise ValueError("format paramstyle does not support "
                              "named parameters")
 
-        return query % args
+        return query % tuple(['%r' % arg for arg in args])
 
 
 class PyFormatParamStyle(AbstractParamStyle):
