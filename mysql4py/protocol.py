@@ -277,6 +277,7 @@ class ResultSet(object):
         self.field_count = response.read_lcb()
         self.protocol = protocol
         self.fields = self.__fields()
+
     #@protected_state(STATE_FIELDS)
     def __fields(self):
         """Find the fields for the current resultset
