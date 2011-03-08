@@ -344,7 +344,7 @@ class Handshake(object):
         """Check whether the server supports a given feature"""
         return self.server_capabilities & flag
 
-    @staticmethod
+    #@staticmethod
     def decode(pkt):
         """Decode a RawPacket into a Handshake instance"""
         protocol_version = pkt.read_int8()
@@ -364,7 +364,7 @@ class Handshake(object):
                          server_capabilities=server_capabilities,
                          charset=charset,
                          server_status=server_status)
-
+    decode = staticmethod(decode)
 
 class ClientAuthentication(object):
     """Client reply to server handshake"""
@@ -437,13 +437,15 @@ class EOF(object):
         self.warnings = warnings
         self.status = status
 
-    @staticmethod
+    #@staticmethod
     def decode(pkt):
         """Decode a RawPacket into an EOF message"""
         pkt.skip(1)
         warnings = pkt.read_int16()
         status = pkt.read_int16()
         return EOF(warnings=warnings, status=status)
+    decode = staticmethod(decode)
+
 
 class Field(object):
     """Field descriptor protocol message"""
@@ -502,13 +504,14 @@ class Field(object):
 class RowData(object):
     """Row data protocol message"""
 
-    @staticmethod
+    #@staticmethod
     def decode(pkt, n_fields):
         """Decode a raw packet into a set of values
 
         A RowData packet is always a series of length-coded strings
         """
         return pkt.read_n_lcs(n_fields)
+    decode = staticmethod(decode)
 
 def scramble(password, message):
     """Generate a hashed password suitable for passing to MySQL 4.1+
