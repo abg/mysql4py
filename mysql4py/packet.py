@@ -65,7 +65,8 @@ class BasePacketStream(object):
             chunk = self.channel.read(n_bytes)
             if not chunk:
                 # MySQL server has gone away
-                raise_mysql_error(errno=2006)
+                raise_mysql_error(errno=2006,
+                                  message='MySQL server has gone away')
             result.extend(chunk)
             n_bytes -= len(chunk)
         return result
@@ -76,7 +77,8 @@ class BasePacketStream(object):
                 n = self.channel.write(data)
                 data = data[n:]
         except socket.error:
-            raise_mysql_error(errno=2006)
+            raise_mysql_error(errno=2006,
+                              message='MySQL server has gone away')
 
     def next_packet(self):
         raise NotImplementedError()
