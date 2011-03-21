@@ -8,6 +8,7 @@ from paramstyle import paramstyles as _paramstyles
 from parser import OptionFile
 
 DEFAULT_OPTION_PATHS = ['/etc/mysql/my.cnf', '/etc/my.cnf', '~/.my.cnf']
+DEFAULT_SOCKET_PATH = '/var/lib/mysql/mysql.sock'
 
 apilevel = '2.0'
 threadsafety = 1
@@ -24,10 +25,19 @@ class Connection(object):
                  read_default_group=None,
                  read_default_file=None):
 
+        if host == 'localhost':
+            unix_socket = DEFAULT_SOCKET_PATH
+
         if unix_socket:
-            channel = connect_unix(unix_socket)
+            try:
+                channel = connect_unix(unix_socket)
+            except socket.error:
+                raise OperationError(2002,
+            self._host_info = 'Localhost via UNIX Socket %s' % unix_socket
         else:
             channel = connect_tcp(host, port)
+            self._host_info = '%s via TCP/IP' % host
+
         self.protocol = Protocol(channel)
 
         if ssl:
@@ -52,6 +62,13 @@ class Connection(object):
         self.protocol.authenticate(user, passwd, db)
         # toggle autocommit to off initially per dbapi spec
         self.autocommit()
+
+    def get_server_info(self):
+        "Returns a string that represents the server version number."
+        return self.server_version()
+
+    def get_host_info(self):
+        return self._host_info
 
     def autocommit(self):
         """Toggle auto-commit"""
