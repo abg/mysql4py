@@ -7,6 +7,22 @@ class ParamFormatError(Exception):
     paramstyle.
     """
 
+def quote_identifier(identifier):
+    return identifier.replace('`', '``')
+
+def escape_string(value):
+    mysql_meta = {
+        '\0'    : '\\0',
+        '\n'    : "\\n",
+        '\r'    : "\\r",
+        '\\'    : "\\",
+        "'"     : "\\'",
+        '"'     : '\\"',
+        '\x1a'  : '\\Z'
+    }
+    return "'%s'" % re.sub(r'''([\x00\n\r\x1a\\'"])''',
+                           lambda m: mysql_meta[m.group(1)],
+                           value)
 
 class AbstractParamStyle(object):
     """Base class for formatting a query with a given paramstyle"""
@@ -50,7 +66,7 @@ class QmarkParamStyle(AbstractParamStyle):
         fragments = []
         for idx, (param, start, stop) in enumerate(matches):
             fragments.append(query[offset:start])
-            fragments.append(args[idx])
+            fragments.append(escape_string(args[idx]))
             offset = stop
         if not fragments:
             return query
@@ -82,7 +98,7 @@ class NamedParamStyle(AbstractParamStyle):
         for param, start, stop in matches:
             name = param[1:]
             fragments.append(query[offset:start])
-            fragments.append(kwargs[name])
+            fragments.append(escape_string(kwargs[name]))
             offset = stop
         if not fragments:
             return query
@@ -119,7 +135,7 @@ class NumericParamStyle(AbstractParamStyle):
         for param, start, stop in matches:
             param_offset = int(param[1:])
             fragments.append(query[offset:start])
-            fragments.append(args[param_offset])
+            fragments.append(escape_string(args[param_offset]))
             offset = stop
         if not fragments:
             return query
@@ -135,7 +151,7 @@ class FormatParamStyle(AbstractParamStyle):
             raise ValueError("format paramstyle does not support "
                              "named parameters")
 
-        return query % tuple(['%r' % arg for arg in args])
+        return query % tuple([escape_string(arg) for arg in args])
 
 
 class PyFormatParamStyle(AbstractParamStyle):
@@ -145,13 +161,15 @@ class PyFormatParamStyle(AbstractParamStyle):
             raise ValueError("pyformat paramstyle does not support "
                              "positional parameters")
 
+        for key, value in kwargs.items():
+            kwargs[key] = escape_string(value)
         return query % kwargs
 
 
 paramstyles = {
-    'qmark' : QmarkParamStyle,
-    'numeric' : NumericParamStyle,
-    'named' : NamedParamStyle,
-    'format' : FormatParamStyle,
-    'pyformat' : PyFormatParamStyle,
+    'qmark'     : QmarkParamStyle,
+    'numeric'   : NumericParamStyle,
+    'named'     : NamedParamStyle,
+    'format'    : FormatParamStyle,
+    'pyformat'  : PyFormatParamStyle,
 }
