@@ -77,6 +77,9 @@ class Connection(object):
         self.protocol.query('SET autocommit=0')
         self.protocol.nextset()
 
+    def ping(self):
+        self.protocol.ping()
+
     def thread_id(self):
         """Fetch the current thread if of the underlying connection"""
         return self.protocol.info.thread_id

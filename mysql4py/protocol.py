@@ -174,6 +174,17 @@ class Protocol(object):
         self.packet.send_packet(message, seqno=0)
         self.channel.close()
 
+    def ping(self):
+        """Check the connection to the server
+
+        :raises: OperationalError if the connection is down
+        """
+        message = pack('B', constants.COM_PING)
+        self.packet.send_packet(message, seqno=0)
+        self.state = STATE_RESULT
+        self.nextset()
+        return True
+
     # simple com_query interface
     # raises InternalError if called with an active resultset
     # state != OK
