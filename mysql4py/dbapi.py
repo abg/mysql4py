@@ -22,6 +22,7 @@ class Connection(object):
                  unix_socket=None,
                  ssl=False,
                  compress=False,
+                 charset='utf8',
                  read_default_group=None,
                  read_default_file=None):
 
@@ -32,7 +33,8 @@ class Connection(object):
             try:
                 channel = connect_unix(unix_socket)
             except socket.error:
-                raise OperationError(2002,
+                raise OperationError(2002, "Can't connect to local MySQL "
+                                     "server through socket %s" % unix_socket)
             self._host_info = 'Localhost via UNIX Socket %s' % unix_socket
         else:
             channel = connect_tcp(host, port)
