@@ -1,9 +1,7 @@
 import socket
-try:
-    import ssl as sslmodule
-except ImportError:
-    sslmodule = None
+import errno
 from array import array
+from ssl import start_ssl
 
 class BufferedChannel(object):
     BLOCK_SIZE = 4096
@@ -38,7 +36,11 @@ class BufferedChannel(object):
         return n
 
     def start_ssl(self, ssl_ca=None, ssl_key=None, ssl_cert=None, ssl_cipher=None):
-        self.socket = sslmodule.wrap_socket(self.socket)
+        if start_ssl:
+            self.socket = start_ssl(self.socket, ssl_ca, ssl_key, ssl_cert)
+        else:
+            raise IOError(errno.EOPNOTSUPP, "SSL not supported")
+
 
     def close(self):
         self.socket.close()

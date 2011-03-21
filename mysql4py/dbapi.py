@@ -21,6 +21,7 @@ class Connection(object):
                  host='localhost', port=3306,
                  unix_socket=None,
                  ssl=False,
+                 ssl_ca=None,
                  compress=False,
                  charset='utf8',
                  read_default_group=None,
@@ -32,9 +33,10 @@ class Connection(object):
         if unix_socket:
             try:
                 channel = connect_unix(unix_socket)
-            except socket.error:
-                raise OperationError(2002, "Can't connect to local MySQL "
-                                     "server through socket %s" % unix_socket)
+            except IOError, exc:
+                raise OperationalError(2002,
+                                       "Can't connect to local MySQL "
+                                       "server through socket %s" % unix_socket)
             self._host_info = 'Localhost via UNIX Socket %s' % unix_socket
         else:
             channel = connect_tcp(host, port)
@@ -43,7 +45,7 @@ class Connection(object):
         self.protocol = Protocol(channel)
 
         if ssl:
-            self.protocol.enable_ssl()
+                self.protocol.enable_ssl(ssl_ca=ssl_ca)
         if compress:
             self.protocol.enable_compression()
 

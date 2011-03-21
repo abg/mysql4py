@@ -48,14 +48,19 @@ class Protocol(object):
         self.flags = 0
         self.packet = packet.RawPacketStream(channel)
         self.charset = charset
+
+        # SSL params
+        self.ssl_ca = None
+
         # active result, if any
         self.result = None
 
     # These raise InterfaceError if called anytime after server handshake
     # (self.server_info is not None)
-    def enable_ssl(self):
+    def enable_ssl(self, ssl_ca):
         """Enable SSL support"""
         self.flags |= constants.CLIENT_SSL
+        self.ssl_ca = ssl_ca
 
     def enable_compression(self):
         """Enable compression support"""
@@ -150,7 +155,10 @@ class Protocol(object):
                                     client_flags=self.flags,
                                     max_packet_size=MAX_PACKET_SIZE)
         self.packet.send_packet(auth.serialize(), seqno=1)
-        self.channel.start_ssl()
+        try:
+            self.channel.start_ssl(ssl_ca=self.ssl_ca)
+        except IOError, exc:
+            raise OperationalError(2026, "SSL connection error: %s" % exc)
         auth.token = token
         self.packet.send_packet(auth.serialize(), seqno=2)
         pkt = self.packet.next_packet()
