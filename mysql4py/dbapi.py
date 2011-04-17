@@ -1,6 +1,7 @@
 """DBAPI 2.0 interface"""
 import codecs
 
+import errors
 from channel import connect_unix, connect_tcp
 from protocol import Protocol
 from conversions import TYPE_MAP
@@ -15,6 +16,17 @@ threadsafety = 1
 paramstyle = 'format'
 
 class Connection(object):
+    Error = errors.Error
+    Warning = errors.Warning
+    InterfaceError = errors.InterfaceError
+    DatabaseError = errors.DatabaseError
+    InternalError = errors.InternalError
+    OperationalError = errors.OperationalError
+    ProgrammingError = errors.ProgrammingError
+    IntegrityError = errors.IntegrityError
+    DataError = errors.DataError
+    NotSupportedError = errors.NotSupportedError
+
     def __init__(self,
                  user=None, passwd=None,
                  db=None,
@@ -36,9 +48,9 @@ class Connection(object):
             try:
                 channel = connect_unix(unix_socket)
             except IOError, exc:
-                raise OperationalError(2002,
-                                       "Can't connect to local MySQL "
-                                       "server through socket %s" % unix_socket)
+                raise self.OperationalError(2002,
+                                            "Can't connect to local MySQL "
+                                            "server through socket %s" % unix_socket)
             self._host_info = 'Localhost via UNIX Socket %s' % unix_socket
         else:
             channel = connect_tcp(host, port)
@@ -152,7 +164,7 @@ class Cursor(object):
         of the input sequence. Input parameters are left untouched, output and
         input/output paramters replaced with possibly new values.
         """
-        raise NotImplementedError()
+        raise self.NotSupportedError("callproc() is currently not supported")
         self.protocol.query('CALL `%s`' % procname)
         return None
 
@@ -248,11 +260,11 @@ class Cursor(object):
             self._result = result
         return True
 
-    def scroll(value, mode='relative'):
+    def scroll(self, value, mode='relative'):
         """Scroll the cursor in the result set to a new position according to
         mode
         """
-        raise NotImplementedError()
+        raise self.NotSupportedError("scroll() is currently not supported")
 
     def setinputsizes(self, sizes):
         """Set sizes for input parameters.
