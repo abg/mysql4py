@@ -332,6 +332,8 @@ class ResultSet(object):
         iterated, one cannot go back.  Caller is responsible for buffering
         rows if requested.
         """
+        if not self.protocol:
+            raise StopIteration
         n_fields = self.field_count
         next_packet = self.protocol.packet.next_packet
         pkt = next_packet()
