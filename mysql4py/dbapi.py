@@ -22,6 +22,8 @@ class Connection(object):
                  unix_socket=None,
                  ssl=False,
                  ssl_ca=None,
+                 ssl_key=None,
+                 ssl_cert=None,
                  compress=False,
                  charset='utf8',
                  read_default_group=None,
@@ -45,7 +47,9 @@ class Connection(object):
         self.protocol = Protocol(channel)
 
         if ssl:
-                self.protocol.enable_ssl(ssl_ca=ssl_ca)
+                self.protocol.enable_ssl(ssl_ca=ssl_ca,
+                                         ssl_key=ssl_key,
+                                         ssl_cert=ssl_cert)
         if compress:
             self.protocol.enable_compression()
 
@@ -233,13 +237,16 @@ class Cursor(object):
         If there are no more sets, the method returns None
         """
         result = self.protocol.nextset()
-        if result:
+        if result is None:
+            return None
+        elif result:
             self.description = self._fields_to_description(result.fields)
             self._result = result
         else:
             self.description = None
             self.rowcount = result.affected_rows
             self._result = result
+        return True
 
     def scroll(value, mode='relative'):
         """Scroll the cursor in the result set to a new position according to
