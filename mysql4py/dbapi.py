@@ -208,7 +208,7 @@ class Cursor(object):
 
     def fetchone(self):
         """Fetch the next row of the query result set"""
-        return self.iter.next()
+        return iter(self).next()
 
     def fetchmany(self, size=None):
         """Fetch the next set of rows of a query result, returning a sequence
