@@ -3,8 +3,8 @@ import struct
 import zlib
 from array import array
 
-from mysql4py.util import ByteStream
-from mysql4py.errors import raise_mysql_error
+from util import ByteStream
+from errors import raise_mysql_error
 
 def pkt2mysqlerror(data):
     errno, sqlstate = struct.unpack('<xH6s', data[0:9])

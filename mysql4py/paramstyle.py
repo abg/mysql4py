@@ -1,6 +1,6 @@
 """dbapi 2.0 paramstyle implementations"""
 
-from mysql4py.pycompat import Scanner
+from pycompat import Scanner
 
 class ParamFormatError(Exception):
     """Raised when there is a problem formatting a query according to a given
