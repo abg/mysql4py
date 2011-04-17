@@ -57,10 +57,12 @@ class Protocol(object):
 
     # These raise InterfaceError if called anytime after server handshake
     # (self.server_info is not None)
-    def enable_ssl(self, ssl_ca):
+    def enable_ssl(self, ssl_ca, ssl_key, ssl_cert):
         """Enable SSL support"""
         self.flags |= constants.CLIENT_SSL
         self.ssl_ca = ssl_ca
+        self.ssl_key = ssl_key
+        self.ssl_cert = ssl_cert
 
     def enable_compression(self):
         """Enable compression support"""
@@ -156,7 +158,9 @@ class Protocol(object):
                                     max_packet_size=MAX_PACKET_SIZE)
         self.packet.send_packet(auth.serialize(), seqno=1)
         try:
-            self.channel.start_ssl(ssl_ca=self.ssl_ca)
+            self.channel.start_ssl(ssl_ca=self.ssl_ca,
+                                   ssl_cert=self.ssl_cert,
+                                   ssl_key=self.ssl_key)
         except IOError, exc:
             raise OperationalError(2026, "SSL connection error: %s" % exc)
         auth.token = token
@@ -193,6 +197,11 @@ class Protocol(object):
         self.nextset()
         return True
 
+    def sync(self):
+        while self.state != STATE_READY:
+            for row in self.result: pass
+            self.nextset()
+
     # simple com_query interface
     # raises InternalError if called with an active resultset
     # state != OK
@@ -201,6 +210,7 @@ class Protocol(object):
         """Send a simple query to the server"""
         # just send the query and set our state to 'needs the results
         # processed'. Errors are delayed until nextset() is run
+        self.sync()
         assert self.state == STATE_READY, \
             "Query in state %d but expected STATE_READY"
         message = pack('B', constants.COM_QUERY) + sql.encode(self.charset)
@@ -213,6 +223,9 @@ class Protocol(object):
 
         Returns result
         """
+        if self.state != STATE_RESULT:
+            return None
+
         response = self.packet.next_packet()
         # OK packet -> INSERT/UPDATE/etc. only rows affected/insert_id
         # returned
@@ -279,6 +292,12 @@ class SimpleResult(object):
 
     def more_results(self):
         return self.info.server_status & constants.SERVER_MORE_RESULTS_EXISTS
+
+    def next(self):
+        raise StopIteration
+
+    def __iter__(self):
+        return self
 
     def __nonzero__(self):
         # False = not a resultset
