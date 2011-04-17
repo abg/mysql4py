@@ -13,9 +13,11 @@
 
 import ssl
 
-def start_ssl(sock, ssl_ca, ssl_client_cert, ssl_client_keyfile):
+def start_ssl(sock, ssl_ca, ssl_client_cert, ssl_client_key):
     """Start an SSL connection using ssl.wrap_socket"""
     return ssl.wrap_socket(sock,
+                           keyfile=ssl_client_key,
+                           certfile=ssl_client_cert,
                            cert_reqs=ssl.CERT_REQUIRED,
                            ca_certs=ssl_ca,
                            ssl_version=ssl.PROTOCOL_TLSv1)

@@ -20,6 +20,8 @@ def start_ssl(sock, ssl_ca_cert, ssl_client_cert, ssl_client_key):
     ctx.set_verify(SSL.verify_peer | SSL.verify_fail_if_no_peer_cert, depth=9)
     if ssl_ca_cert:
         ctx.load_verify_locations(ssl_ca_cert)
+    if ssl_client_cert:
+        ctx.load_cert(ssl_client_cert, ssl_client_key)
     sock = SSL.Connection(ctx, sock)
     sock.setup_ssl()
     sock.set_connect_state()
