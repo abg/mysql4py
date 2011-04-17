@@ -14,7 +14,7 @@
 import errno
 from M2Crypto import SSL
 
-def start_ssl(sock, ssl_ca_cert, ssl_client_cert, ssl_client_key):
+def start_ssl(sock, ssl_ca, ssl_client_cert, ssl_client_key):
     """Start SSL using m2crypto"""
     ctx = SSL.Context('sslv23')
     ctx.set_verify(SSL.verify_peer | SSL.verify_fail_if_no_peer_cert, depth=9)

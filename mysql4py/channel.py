@@ -37,7 +37,10 @@ class BufferedChannel(object):
 
     def start_ssl(self, ssl_ca=None, ssl_key=None, ssl_cert=None, ssl_cipher=None):
         if start_ssl:
-            self.socket = start_ssl(self.socket, ssl_ca, ssl_key, ssl_cert)
+            self.socket = start_ssl(self.socket,
+                                    ssl_ca=ssl_ca,
+                                    ssl_client_key=ssl_key,
+                                    ssl_client_cert=ssl_cert)
         else:
             raise IOError(errno.EOPNOTSUPP, "SSL not supported")
 
